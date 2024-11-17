@@ -4,8 +4,13 @@
   <div class="container">
 
     <!-- Brand -->
-    <a class="navbar-brand waves-effect" href="/">
-      <strong class="blue-text">DJe-commerce</strong>
+    <a class="navbar-brand mt-2 mt-sm-0" href="/">
+      <img
+        src="https://mdbcdn.b-cdn.net/img/logo/mdb-transaprent-noshadows.webp"
+        height="20"
+        alt="Why Not Studio"
+        loading="lazy"
+      />
     </a>
 
     <!-- Collapse -->
@@ -15,15 +20,17 @@
     </button>
 
     <!-- Links -->
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <div class="collapse navbar-collapse" style="
+    flex-direction: row-reverse;
+    display: flex !important;" id="navbarSupportedContent">
 
       <!-- Left -->
       <ul class="navbar-nav mr-auto">
-        <li class="nav-item active">
+        {% comment %} <li class="nav-item active">
           <a class="nav-link waves-effect" href="/">Home
             <span class="sr-only">(current)</span>
           </a>
-        </li>
+        </li> {% endcomment %}
         {% comment %} <li class="nav-item">
           <a class="nav-link waves-effect" href="/checkout">
             Checkout</a>
@@ -35,7 +42,7 @@
         {% if request.user.is_authenticated %}
         <li class="nav-item">
           <a href="{% url 'core:order-summary' %}" class="nav-link waves-effect">
-            <span class="badge red z-depth-1 mr-1"> {{ request.user|cart_item_count }} </span>
+            <span class="badge red z-depth-1 mr-1"style="color:brown"> {{ request.user|cart_item_count }} </span>
             <i class="fas fa-shopping-cart"></i>
             <span class="clearfix d-none d-sm-inline-block"> Cart </span>
           </a>

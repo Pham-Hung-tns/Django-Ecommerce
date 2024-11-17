@@ -21,7 +21,7 @@ from django.views.generic import ListView, DetailView, View
 import urllib
 
 from .forms import CheckoutForm, CouponForm, RefundForm, PaymentForm
-from .models import Item, OrderItem, Order, Address, Payment, Coupon, Refund, UserProfile, CATEGORY_CHOICES
+from .models import Item, OrderItem, Order, Address, Payment,PayMent_VNpay, Coupon, Refund, UserProfile, CATEGORY_CHOICES
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -220,7 +220,7 @@ class CheckoutView(View):
                 elif payment_option == 'P':
                     return redirect('core:payment')
                 elif payment_option == 'VNP':
-                    return redirect('core:index')
+                    return redirect('core:payment_vnpay')
                 else:
                     messages.warning(
                         self.request, "Invalid payment option selected")
@@ -571,15 +571,15 @@ def hmacsha512(key, data):
 
 
 def paymentVNP(request):
-
+    order = Order.objects.get(user=request.user, ordered=False)
     if request.method == 'POST':
         # Process input data and build url payment
+        
         form = PaymentFormVNP(request.POST)
         if form.is_valid():
-            print(form.cleaned_data['order_id'])
             order_type = form.cleaned_data['order_type']
             order_id = form.cleaned_data['order_id']
-            amount = form.cleaned_data['amount']
+            amount = int(order.get_total()) * 100
             order_desc = form.cleaned_data['order_desc']
             bank_code = form.cleaned_data['bank_code']
             language = form.cleaned_data['language']
@@ -607,12 +607,11 @@ def paymentVNP(request):
             vnp.requestData['vnp_IpAddr'] = ipaddr
             vnp.requestData['vnp_ReturnUrl'] = settings.VNP_RETURN_URL
             vnpay_payment_url = vnp.get_payment_url(settings.VNP_URL, settings.VNP_HASHSECRET)
-            print(vnpay_payment_url)
             return redirect(vnpay_payment_url)
         else:
             print("Form input not validate")
     else:
-        return render(request, "payment_vnpay.html", {"title": "Thanh toán"})
+        return render(request, "payment_vnpay.html", {"title": "Thanh toán","total_amount":int(order.get_total()) * 100})
 
 
 def payment_ipn(request):
@@ -672,6 +671,16 @@ def payment_return(request):
         vnp_PayDate = inputData['vnp_PayDate']
         vnp_BankCode = inputData['vnp_BankCode']
         vnp_CardType = inputData['vnp_CardType']
+
+        payment = PayMent_VNpay.objects.create(
+            order_id = order_id,
+            amount = amount,
+            order_desc = order_desc,
+            vnpay_Trans = vnp_TransactionNo,
+            vnpay_ResponseCode = vnp_ResponseCode
+        )
+
+
         if vnp.validate_response(settings.VNP_HASHSECRET):
             if vnp_ResponseCode == "00":
                 order = Order.objects.get(user=request.user, ordered=False)
@@ -787,7 +796,7 @@ def refund(request):
     vnp_TransactionNo = '0'
     vnp_TransactionDate = request.POST['trans_date']
     vnp_CreateDate = datetime.now().strftime('%Y%m%d%H%M%S')
-    vnp_CreateBy = 'user01'
+    vnp_CreateBy = 'admin'
     vnp_IpAddr = get_client_ip(request)
 
     hash_data = "|".join([
@@ -818,15 +827,13 @@ def refund(request):
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
-
     if response.status_code == 200:
+        pass
         response_json = json.loads(response.text)
     else:
         response_json = {"error": f"Request failed with status code: {response.status_code}"}
 
     return render(request, "refund.html", {"title": "Kết quả hoàn tiền giao dịch", "response_json": response_json})
-
-
 # Email marketing
 from django.shortcuts import render, redirect
 from django.core.mail import EmailMessage

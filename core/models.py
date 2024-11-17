@@ -9,9 +9,9 @@ import uuid
 from uuid import uuid4
 
 CATEGORY_CHOICES = (
-    ('S', 'Shirt'),
-    ('SW', 'Sport wear'),
-    ('OW', 'Outwear')
+    ('Dr', 'Dress'),
+    ('Sh', 'Shoes'),
+    ('Gi', 'Gift')
 )
 
 LABEL_CHOICES = (
@@ -38,6 +38,15 @@ class UserProfile(models.Model):
         return self.user.username
 
 
+class AdditionImage(models.Model):
+    item = models.ForeignKey(
+        'Item', 
+        related_name='addition_images', 
+        on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to='addition_images/')  # Thư mục lưu ảnh bổ sung
+
+
 class Item(models.Model):
     title = models.CharField(max_length=100)
     price = models.FloatField()
@@ -48,7 +57,7 @@ class Item(models.Model):
     description = models.TextField()
     image = models.ImageField()
     custom_id = models.CharField(max_length=255, unique=True, null=True, blank=True, default=uuid4)  # Custom ID
-
+    add_information = models.TextField()
 
     def __str__(self):
         return self.title
@@ -68,8 +77,9 @@ class Item(models.Model):
             'slug': self.slug
         })
     
-    def get_image_url(self):
-        return f"{settings.MEDIA_URL}{self.image}"
+    def get_item_detail(self):
+        return AdditionImage.objects.filter(item=self)
+
 
 class OrderItem(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
@@ -194,5 +204,11 @@ def userprofile_receiver(sender, instance, created, *args, **kwargs):
         # userprofile.stripe_customer_id = stripe_customer['id']
         # userprofile.save()
 
+class PayMent_VNpay(models.Model):
+    order_id = models.IntegerField(default=0, null=True,blank= True)
+    amount = models.FloatField(default=0.0, null=True, blank=True)
+    order_desc = models.CharField(max_length=100,null=True, blank=True)
+    vnpay_Trans = models.CharField(max_length=100, null=True, blank=True)
+    vnpay_ResponseCode = models.CharField(max_length=100,null=True,blank=True)
 
 post_save.connect(userprofile_receiver, sender=settings.AUTH_USER_MODEL)
