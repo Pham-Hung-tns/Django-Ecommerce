@@ -15,7 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'django.contrib.sitemaps',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -102,3 +102,12 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'trangquyh46@gmail.com'
 EMAIL_HOST_PASSWORD = 'zzcb sroc gmid xmrx'
+
+#thiết lập đúng các cài đặt liên quan đến SECURE_PROXY_SSL_HEADER để Ngrok hiểu được yêu cầu:
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+

@@ -10,14 +10,21 @@ from .views import (
     add_to_cart,
     remove_from_cart,
     remove_single_item_from_cart,
-    payment_return,
     PaymentView,
-    index_vnp,
-    # VNPAYPaymentView,
     AddCouponView,
     RequestRefundView,
-    ProductListView
+    ProductListView,
+    cart_history_view,
+    add_to_cart_history,
+    robots_txt
 )
+from django.contrib.sitemaps.views import sitemap
+from core.sitemap import StaticViewSitemap, ProductSitemap
+
+sitemaps = {
+    'static': StaticViewSitemap,
+    'products': ProductSitemap,
+}
 
 app_name = 'core'
 
@@ -36,6 +43,8 @@ urlpatterns = [
     path('payment/stripe/', PaymentView.as_view(), name='payment'),
     #path('payment/vnpay/', VNPAYPaymentView.as_view(), name='vnpay_payment'),
     path('request-refund/', RequestRefundView.as_view(), name='request-refund'),
+    path('cart-history/', cart_history_view, name='cart_history'),
+    path('add-to-cart-history/', add_to_cart_history, name='add_to_cart_history'),
     #path('payment/vnpay/return/', payment_return, name='vnpay_return'),
 
 
@@ -47,5 +56,10 @@ urlpatterns = [
     path('refund', core.views.refund, name='refund'),
     #path('admin/', admin.site.urls),
 
-    path('contact', core.views.contact, name='contact')
+    path('contact', core.views.contact, name='contact'),
+
+    #sitemap
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    #robot.txt
+    path("robots.txt", robots_txt, name="robots_txt")
 ]

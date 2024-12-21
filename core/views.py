@@ -21,7 +21,7 @@ from django.views.generic import ListView, DetailView, View
 import urllib
 
 from .forms import CheckoutForm, CouponForm, RefundForm, PaymentForm
-from .models import Item, OrderItem, Order, Address, Payment,PayMent_VNpay, Coupon, Refund, UserProfile, CATEGORY_CHOICES
+from .models import Item, OrderItem, Order, Address, Payment,PayMent_VNpay, Coupon, Refund, UserProfile,CartHistory, CATEGORY_CHOICES
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -43,10 +43,13 @@ class ProductListView(ListView):
         if category_code in dict(CATEGORY_CHOICES):
             queryset = queryset.filter(category=category_code)
         return queryset
-    
+
+from django.views.decorators.cache import cache_page
+
+@cache_page(60 * 15)  
 def products(request):
     context = {
-        'items': Item.objects.all()
+        'items': Item.objects.all(),
     }
     return render(request, "product.html", context)
 
@@ -298,7 +301,7 @@ class PaymentView(View):
                         currency="usd",
                         source=token
                     )
-
+                
                 # create the payment
                 payment = Payment()
                 payment.stripe_charge_id = charge['id']
@@ -312,12 +315,18 @@ class PaymentView(View):
                 order_items.update(ordered=True)
                 for item in order_items:
                     item.save()
+                    try:
+                        # item about orderItem - order from order
+                        add_to_cart_history(order,item)
+                    except Exception as e:
+                        print(f"Error adding to cart history: {e}")
 
                 order.ordered = True
+            
                 order.payment = payment
                 order.ref_code = create_ref_code()
                 order.save()
-
+                
                 messages.success(self.request, "Your order was successful!")
                 return redirect("/")
 
@@ -365,7 +374,37 @@ class PaymentView(View):
 
         messages.warning(self.request, "Invalid data received")
         return redirect("/payment/stripe/")
+@login_required
+def add_to_cart_history(order: Order,item: OrderItem):
+    """
+    Lưu sản phẩm từ giỏ hàng của người dùng vào lịch sử.
+    """
+    if item.user.is_authenticated:
 
+        # Lưu thông tin vào CartHistory
+        CartHistory.objects.create(
+            user=item.user,
+            product= item.item,
+            quantity= item.quantity,
+            price = item.get_final_price(),
+            added_at = order.ordered_date,
+            ordered = item.ordered,
+            image = item.item.image.url
+        )
+        print(item.item.image.url)
+        return JsonResponse({'message': 'Added to cart history successfully'}, status=200)
+    
+    return JsonResponse({'error': 'Invalid request or unauthenticated user'}, status=400)
+
+
+@login_required
+def cart_history_view(request):
+    if request.user.is_authenticated:
+        history = CartHistory.objects.filter(user=request.user).order_by('added_at')
+        if not history.exists():
+            return render(request, 'HistoryCart.html', {'message': 'Bạn không có bất cứ giao dịch nào.'})
+        return render(request, 'HistoryCart.html', {'history': history})
+    return render(request, 'HistoryCart.html', {'error': 'Bạn cần đăng nhập để xem lịch sử giỏ hàng.'})
 
 class HomeView(ListView):
     model = Item
@@ -389,6 +428,14 @@ class OrderSummaryView(LoginRequiredMixin, View):
 class ItemDetailView(DetailView):
     model = Item
     template_name = "product.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Lấy URL đầy đủ
+        context['absolute_url'] = self.request.build_absolute_uri(self.object.get_absolute_url())
+        context['title'] = self.request.build_absolute_uri(self.object.title)
+        context['description'] = self.request.build_absolute_uri(self.object.add_information)
+        context['image_url'] = self.request.build_absolute_uri(self.object.image.url)
+        return context
 
 
 @login_required
@@ -875,5 +922,20 @@ def send_marketing_email(email):
     )
     email.content_subtype = "html"
     email.send()
+
+#robot.txt
+from django.http import HttpResponse
+
+def robots_txt(request):
+    content = """
+    User-agent: *
+    Disallow: /admin/
+    Disallow: /cart/
+    Disallow: /checkout/
+    Disallow: /profile/
+    Allow: /
+    Sitemap: http://127.0.0.1:8000/sitemap.xml
+    """
+    return HttpResponse(content, content_type="text/plain")
 
 

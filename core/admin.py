@@ -1,8 +1,13 @@
 from django.contrib import admin
 
-from .models import Item, OrderItem, Order, Payment, Coupon, Refund, Address, UserProfile, AdditionImage, PayMent_VNpay
+from .models import Item, OrderItem, Order, Payment, Coupon, Refund, Address, UserProfile,CartHistory, AdditionImage, PayMent_VNpay, SMSOTP
 
-
+@admin.register(CartHistory)
+class CartHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'quantity', 'added_at')
+    search_fields = ('user__username', 'product')
+    list_filter = ('added_at',)
+    
 def make_refund_accepted(modeladmin, request, queryset):
     queryset.update(refund_requested=False, refund_granted=True)
 
@@ -81,3 +86,4 @@ admin.site.register(Refund)
 admin.site.register(Address, AddressAdmin)
 admin.site.register(UserProfile)
 admin.site.register(AdditionImage)  # Đăng ký AdditionImage để quản lý trực tiếp nếu cần
+admin.site.register(SMSOTP)

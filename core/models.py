@@ -4,9 +4,13 @@ from django.db import models
 from django.db.models import Sum
 from django.shortcuts import reverse
 from django_countries.fields import CountryField
-import stripe
-import uuid
 from uuid import uuid4
+from imagekit.models import ProcessedImageField
+from imagekit.processors import ResizeToFill
+from django.contrib.auth.models import User
+
+import vonage
+
 
 CATEGORY_CHOICES = (
     ('Dr', 'Dress'),
@@ -30,7 +34,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     #tim cach luu customer_id lại voi stripe
-    stripe_customer_id = 'cus_R9pwUNA8w9g2qD'
+    stripe_customer_id = 'customer-strpie-key'
     #models.CharField(max_length=50, blank=True, null=True)
     one_click_purchasing = models.BooleanField(default=False)
 
@@ -55,10 +59,15 @@ class Item(models.Model):
     label = models.CharField(choices=LABEL_CHOICES, max_length=1)
     slug = models.SlugField()
     description = models.TextField()
-    image = models.ImageField()
+    #image = models.ImageField()
+    image = ProcessedImageField(
+        processors=[ResizeToFill(300, 300)],
+        format='JPEG',
+        options={'quality': 80}
+    )
     custom_id = models.CharField(max_length=255, unique=True, null=True, blank=True, default=uuid4)  # Custom ID
     add_information = models.TextField()
-
+    updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return self.title
 
@@ -80,7 +89,20 @@ class Item(models.Model):
     def get_item_detail(self):
         return AdditionImage.objects.filter(item=self)
 
-
+class CartHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cart_history')
+    product = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.FloatField(default= 0)
+    added_at = models.DateTimeField(auto_now_add=True)
+    ordered = models.BooleanField(default=False)
+    image = ProcessedImageField(
+        processors=[ResizeToFill(300, 300)],
+        format='JPEG',
+        options={'quality': 80},
+        null= True,
+        blank = True
+    )
 class OrderItem(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
@@ -211,4 +233,38 @@ class PayMent_VNpay(models.Model):
     vnpay_Trans = models.CharField(max_length=100, null=True, blank=True)
     vnpay_ResponseCode = models.CharField(max_length=100,null=True,blank=True)
 
+class SMSOTP(models.Model):
+    result = models.PositiveIntegerField()
+
+    def __str__(self):
+        return str(self.result)
+    
+    def save(self, *args, **kwargs):
+        print(f"Saving SMSOTP with result: {self.result}")
+        if self.result < 70:
+            # Replace with your Vonage API key and secret
+            api_key = 'c7d22a24'
+            api_secret = 'VSsumT6TeqrfZ9S4'
+
+            # Create a Vonage client
+            client = vonage.Client(key=api_key, secret=api_secret)
+
+            # Create a Vonage SMS client
+            sms = vonage.Sms(client)
+
+            # Send an SMS message
+            responseData = sms.send_message(
+                {
+                    "from": "Vonage APIs",
+                    "to": "+84393241764",  # Replace with your recipient's phone number
+                    "text": "A text message sent using the Vonage SMS API",
+                }
+            )
+
+            # Check the response
+            if responseData["messages"][0]["status"] == "0":
+                print("Message sent successfully.")
+            else:
+                print(f"Message failed with error: {responseData['messages'][0]['error-text']}")
+        super().save(*args, **kwargs)
 post_save.connect(userprofile_receiver, sender=settings.AUTH_USER_MODEL)

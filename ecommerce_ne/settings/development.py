@@ -2,7 +2,7 @@ from .base import *
 
 
 DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1','9d7e-203-205-29-106.ngrok-free.app']
 
 INSTALLED_APPS += [
     'debug_toolbar'
@@ -58,5 +58,8 @@ VNP_TMNCODE= os.getenv('VNP_TMNCODE')
 VNP_HASHSECRET= os.getenv('VNP_HASHSECRET')
 VNP_URL=os.getenv('VNP_URL')
 VNP_RETURN_URL=os.getenv('VNP_RETURN_URL')
+
+#thiết lập đúng các cài đặt liên quan đến SECURE_PROXY_SSL_HEADER để Ngrok hiểu được yêu cầu:
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 

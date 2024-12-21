@@ -1,5 +1,18 @@
 {% extends "base.html" %}
 
+{% block title %}{{ object.title }} - Giá tốt nhất{% endblock title %}
+
+{% block og_meta %}
+<meta property="fb:app_id" content="1231797221427681" />
+<meta property="og:title" content="{{object.title}}" />
+<meta property="og:description" content="{{object.description}}" />
+<meta property="og:url" content="{{ absolute_url }}" />
+<meta property="og:image" content="{{ image_url }}" />
+<meta property="og:type" content="product" />
+
+{% endblock og_meta %}
+
+
 {% block content %}
 
 <main class="mt-5 pt-4">
@@ -23,13 +36,13 @@
         <div class="p-4">
 
           <div class="mb-3">
-            <h2>
+            <h1>
               <strong>
                 <a href="{{ item.get_absolute_url }}" class="dark-grey-text">{{ item.title }}
                 </a>
               </strong>
               <small class="badge purple mr-1">{{ object.get_category_display }}</small>
-            </h2>
+            </h1>
               
           </div>
 
@@ -38,13 +51,13 @@
             <span class="mr-1">
               <del>${{ object.price }}</del>
             </span>
-            <span>${{ object.discount_price }}</span>
+            <span><strong>${{ object.discount_price }}</strong></span>
             {% else %}
             <span>${{ object.price }}</span>
             {% endif %}
           </p>
 
-          <p class="lead font-weight-bold">Description</p>
+          <h2 class="lead font-weight-bold">Description</h2>
 
           <p>{{ object.description|linebreaksbr }}</p>
 
@@ -57,13 +70,21 @@
             </button>
 
           </form> {% endcomment %}
-          <a href="{{ object.get_add_to_cart_url }}" class="btn btn-primary btn-md my-0 p">
-            Add to cart
-            <i class="fas fa-shopping-cart ml-1"></i>
-          </a>
-          <a href="{{ object.get_remove_from_cart_url }}" class="btn btn-danger btn-md my-0 p">
-            Remove from cart
-          </a>
+          <div style="display: flex; justify-content: left; gap: 10px;">
+            <a href="{{ object.get_add_to_cart_url }}" class="btn btn-primary btn-md my-0 p">
+              Add to cart
+              <i class="fas fa-shopping-cart ml-1"></i>
+            </a>
+            <a href="{{ object.get_remove_from_cart_url }}" class="btn btn-danger btn-md my-0 p">
+              Remove from cart
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ absolute_url }}" class="btn btn-danger btn-md my-0 p" target="_blank">
+              Share on Facebook
+            </a>
+          </div>
+          
+          
+          
 
         </div>
         <!--Content-->
@@ -106,6 +127,28 @@
     <!--Grid row-->
 
   </div>
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "{{ object.title}}",
+      "image": "{{ object.image.url }}",
+      "description": "{{ object.add_information }}",
+      "brand": {
+        "@type": "Brand",
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": "{{ absolute_url }}",
+        "priceCurrency": "USD",
+        "price": "{{ object.price }}",
+        "availability": "https://schema.org/{% if product.is_in_stock %}InStock{% else %}OutOfStock{% endif %}",
+        "itemCondition": "https://schema.org/NewCondition"
+      }
+    }
+    </script>
+    
 </main>
 
 {% endblock content %}
